@@ -1,6 +1,4 @@
-export type Nullable<T> = T | null;
-
-export const noop = () => {};
+type Nullable<T> = T | null;
 
 export interface GraysOptions {
   className?: string;
@@ -8,10 +6,7 @@ export interface GraysOptions {
   immediate?: boolean;
 }
 
-export const graysStyleGen = (
-  className: string,
-  value: number
-) => `.${className} {
+const graysStyleGen = (className: string, value: number) => `.${className} {
         filter: grayscale(${value}%);
         -webkit-filter: grayscale(${value}%);
         -moz-filter: grayscale(${value}%);
@@ -23,11 +18,6 @@ export const graysStyleGen = (
     }
 `;
 
-const emptyReturn = {
-  apply: noop,
-  cancel: noop,
-} as const;
-
 const appendStyle = (className: string, grayscale: number) => {
   const styleEl = document.createElement("style");
 
@@ -36,34 +26,38 @@ const appendStyle = (className: string, grayscale: number) => {
   document.head.append(styleEl);
 };
 
+const exRun = (selector: string, fn: (elem: HTMLElement) => void) => {
+  const elem: Nullable<HTMLElement> = document.querySelector(selector);
+  if (!elem) {
+    throw new Error(`selector: "${selector}" does not exist`);
+  }
+  fn(elem);
+};
+
 export const grays = (
   selector: string = "html",
   grayscale: number = 99,
   options: GraysOptions = {}
 ) => {
-  const elem: Nullable<HTMLElement> = document.querySelector(selector);
-
-  if (!elem) {
-    return emptyReturn;
-  }
-
   const { className = "grays", expire, immediate = true } = options;
-
-  const enable = expire ? Date.now() <= expire : true;
-
-  if (!enable) {
-    return emptyReturn;
-  }
 
   appendStyle(className, grayscale);
 
-  const apply = () => elem.classList.add(className);
+  const apply = () => {
+    exRun(selector, (elem) => elem.classList.add(className));
+  };
 
-  const cancel = () => elem.classList.remove(className);
+  const cancel = () => {
+    exRun(selector, (elem) => elem.classList.remove(className));
+  };
 
   if (immediate) {
-    apply();
+    const enable = expire ? Date.now() <= expire : true;
+    if (enable) {
+      apply();
+    }
   }
+
   return {
     apply,
     cancel,
